@@ -1,5 +1,5 @@
 import { Controller, Get, Post, Body, Param, Inject, ParseUUIDPipe, Query, Patch } from '@nestjs/common';
-import { ORDER_SERVICE } from 'src/config';
+import { NATS_SERVICE } from 'src/config';
 import { ClientProxy, RpcException } from '@nestjs/microservices';
 import { CreateOrderDto, StatusDto } from './dto';
 import { catchError } from 'rxjs';
@@ -9,17 +9,18 @@ import { paginationDto } from 'src/common';
 @Controller('orders')
 export class OrdersController {
   constructor(
-    @Inject(ORDER_SERVICE) private readonly ordersClient: ClientProxy
+    @Inject(NATS_SERVICE) private readonly client: ClientProxy
   ) { }
 
   @Post()
   create(@Body() createOrderDto: CreateOrderDto) {
-    return this.ordersClient.send('createOrder', createOrderDto);
+    console.log("Voy a crear una orden")
+    return this.client.send({ cmd:'createOrder'}, createOrderDto);
   }
 
   @Get()
   findAll(@Query() orderpaginationDTO: OrderPaginationDTO) {
-    return this.ordersClient.send('findAllOrders', orderpaginationDTO)
+    return this.client.send({ cmd: 'findAllOrders' }, orderpaginationDTO)
       .pipe(
         catchError(error => { throw new RpcException(error) })
       )
@@ -27,7 +28,7 @@ export class OrdersController {
 
   @Get('id/:id')
   findOne(@Param('id', ParseUUIDPipe) id: string) {
-    return this.ordersClient.send('findOneOrder', id)
+    return this.client.send('findOneOrder', id)
       .pipe(
         catchError(error => { throw new RpcException(error) })
       )
@@ -38,7 +39,7 @@ export class OrdersController {
     @Param() statusDto: StatusDto,
     @Query() paginationDto: paginationDto
   ) {
-    return this.ordersClient.send('findAllOrders', {
+    return this.client.send('findAllOrders', {
       ...paginationDto,
       status: statusDto.status
     })
@@ -52,6 +53,6 @@ export class OrdersController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() statusDto: StatusDto
   ){
-    return this.ordersClient.send('changestatus',{ id, status: statusDto.status})
+    return this.client.send('changestatus',{ id, status: statusDto.status})
   }
 }
